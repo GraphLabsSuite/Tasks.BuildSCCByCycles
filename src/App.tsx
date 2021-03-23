@@ -3,18 +3,14 @@ import './App.css';
 
 // @ts-ignore
 import {select} from 'd3-selection'
-import {Edge, Graph, GraphGenerator, IEdge, IGraph, IVertex, UndirectedGraph, Vertex} from 'graphlabs.core.graphs'
-import {Template, ToolButtonList, Toolbar, store, IEdgeView, IGraphView, GraphVisualizer} from "graphlabs.core.template";
+import {Edge, Graph, IEdge, IGraph, IVertex, UndirectedGraph, Vertex} from 'graphlabs.core.graphs'
+import {Template, ToolButtonList, Toolbar, store, IEdgeView, GraphVisualizer} from "graphlabs.core.template";
 import * as data_json from "./stub.json";
 import {DirectedGraph} from "graphlabs.core.graphs/build/main/DirectedGraph";
 import {MatrixOperations} from "graphlabs.core.graphs/build/helpers/MatrixOperations";
 
 let fee: number = 13
 
-// @ts-ignore
-function compareNumbers(a, b){
-    return a - b;
-}
 
 class App extends Template {
 
@@ -90,9 +86,6 @@ class App extends Template {
             }
             ToolButtonList.prototype.beforeComplete = beforeComplete.bind(this);
             ToolButtonList.prototype.help = () =>
-                'В данном задании необходимо построить компоненты сильной связности с помощью циклового метода\n' +
-                'Для этого необходимо выделить вершины - сток и исток\n' +
-                'а также раскрасить все циклы, принаджелащие КСС в разные цвета\n' +
                 'Для окраски ребра в синий или красный цвет щелкните по ребру, а затем по соответствующей кнопке\n';
 
             ToolButtonList.prototype.toolButtons = {
@@ -114,13 +107,28 @@ class App extends Template {
         sessionStorage.removeItem('out');
         sessionStorage.removeItem('in');
         select(`#edge_${Out}_${In}`).style('stroke', color);
-        // if (Out && In && color) {
-        //     this.append_edge(Out, In, color)
-        // }
+    }
+
+    get_vertex_color(i: string){
+        let vertex = select(`#vertex_${i}`)
+        let color = vertex.style('fill')
+        return color
+    }
+
+    get_edge_color(edge: IEdgeView){
+        let Out: string = edge.vertexOne;
+        let In: string = edge.vertexTwo;
+        let color: string = "black"
+        try {
+            color = select(`#edge_${Out}_${In}`).style('stroke');
+        }
+        catch (err) {
+            color =  "black"
+        }
+        return color
     }
 
     append_edge(scc_student: any, vertexOneName: string, vertexTwoName: string, color: string){
-        console.log(color)
         if (scc_student[color].length === 0){
             scc_student[color].push(vertexOneName)
             scc_student[color].push(vertexTwoName)
@@ -131,23 +139,7 @@ class App extends Template {
         else if (scc_student[color].indexOf(vertexTwoName) === -1){
             scc_student[color].push(vertexTwoName)
         }
-        console.log("add edge ",color, vertexTwoName, vertexOneName, scc_student)
         return scc_student
-    }
-
-    check_color(edge: IEdgeView){
-        let Out: string = edge.vertexOne;
-        let In: string = edge.vertexTwo;
-        let color: string = "black"
-        try {
-            color = select(`#edge_${Out}_${In}`).style('stroke');
-        }
-        catch (err) {
-
-            color =  "black"
-        }
-
-        return color
     }
 
     check_answer(student_answer: number[][], answer: number[][]): boolean{
@@ -155,9 +147,9 @@ class App extends Template {
         if (answer.length !== student_answer.length){
             return false
         }
-
         for (let i: number = 0; i < answer.length; i++) {
             let ans: number[] = answer[i].sort()
+
             for (let j: number = 0; j < student_answer.length; j++) {
                 let std: number[] = student_answer[j].sort()
                 let arr1 = JSON.stringify(std)
@@ -170,18 +162,24 @@ class App extends Template {
         if (res.length === answer.length){
             return true
         }
-        console.log(res, answer)
         return false
     }
+    // check_condensat(i: string){
+    //     let vertix = select(`#vertex_${i}`)
+    //     let x = vertix.style('cx')
+    //     let y = vertix.style('cy')
+    // }
 
     calculate() {
         let student_answer = this.build_student_answer()
-        let answer = this.build_answer()
+        let answer = this.build_correct_answer()
 
         if (this.check_answer(student_answer, answer)){
+            alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
             return {success: true , fee: 0}
         }
         else {
+            alert("Вы ошиблись. Попробуйте еще раз.")
             this.num = this.num + 1
             if ( this.num > 4 ){
                 fee = 0
@@ -193,13 +191,11 @@ class App extends Template {
         }
     }
 
-    build_answer(): any{
+    build_correct_answer(): any{
         let answer: any = []
         for (let i: number = 0; i < this.components.length; i++) {
             let vertexs: any = this.get_scc(this.components[i])
-            if (vertexs.length >1){
-                answer.push(vertexs)
-            }
+            answer.push(vertexs)
         }
         return answer
     }
@@ -208,9 +204,7 @@ class App extends Template {
         let edges: any = this.graph.edges
         let scc_student: any = {"blue":[], "red": [], "black": [], "green": []}
         for (let i: number = 0; i < edges.length; i++) {
-            let color: string = this.check_color(edges[i])
-            console.log(color)
-            console.log(edges[i].vertexOne.name, edges[i].vertexTwo.name)
+            let color: string = this.get_edge_color(edges[i])
             scc_student = this.append_edge(scc_student,edges[i].vertexOne.name, edges[i].vertexTwo.name, color )
         }
         let answer: any = []
@@ -220,7 +214,12 @@ class App extends Template {
         if (scc_student["red"].length > 0){
             answer.push(scc_student["red"])
         }
-
+        for (let i: number = 0; i < this.graph.vertices.length; i++) {
+            let color = this.get_vertex_color(this.graph.vertices[i].name)
+            if(color === "rgb(255, 0, 0)"){
+             answer.push([this.graph.vertices[i].name])
+            }
+        }
         return answer
     }
 
@@ -238,8 +237,25 @@ class App extends Template {
         return SccBuilderNew.findComponents(graph)
     }
 
-    // task():{
-    // }
+    task() {
+        return () => (
+            <div style={{overflow: "auto"}}>
+                <p>Цель: Найти компонент сильной связности с помощь циклового метода</p>
+                <p>Данное задание состоит из двух этапов, выполнять их необходимо строго по очереди:</p>
+                <div style={{overflow: "auto"}}> <ol>
+                    <li>
+                        <ul>
+                            <li>Необходимо выделить вершину сток, исток, нажав на них.</li>
+                            <li>Выделить простые циклы(выделить ребра графа), входящие в одну компоненты сильной связности.</li>
+                            <li>Если существуют компоненты сильной связности, состоящие из одной вершины, необходимо нажать на них.</li>
+                            <li>Нажать на кнопку проверки в левом меню.Если задание постреено правильно, вы можете переходить ко второму этапу</li>
+                        </ul>
+                    </li>
+                    <li>Необходимо построить конденсат, перетащив вершины.</li>
+                </ol>
+                </div>
+            </div>);
+    }
 
 }
 

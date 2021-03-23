@@ -8,9 +8,16 @@
                 "2",
                 "3",
                 "4",
-                "5"
+                "5",
+                "6"
             ],
             "edges": [
+                {
+                    "source": "2",
+                    "target": "5",
+                    "isDirected": "true"
+
+                },
                 {
                     "source": "2",
                     "target": "1",
@@ -18,8 +25,8 @@
 
                 },
                 {
-                    "source": "3",
-                    "target": "2",
+                    "source": "2",
+                    "target": "3",
                     "isDirected": "true"
 
                 },
