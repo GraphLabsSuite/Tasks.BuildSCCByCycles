@@ -14,13 +14,15 @@ let fee: number = 13
 
 class App extends Template {
 
+    step: number = 1
     graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
     components: IGraph<IVertex, IEdge>[] = []
     num: number = 0
+    ball: number = 100
 
     constructor(props: {}) {
         super(props);
-        this.set_graph()
+        this.setGraph()
         this.getArea()
         this.calculate = this.calculate.bind(this);
     }
@@ -46,7 +48,7 @@ class App extends Template {
         return graph;
     }
 
-    set_graph(){
+    setGraph(){
         // const data = sessionStorage.getItem('variant');
         let graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
         let objectData;
@@ -61,17 +63,19 @@ class App extends Template {
             graph = this.graphManager(objectData.default.data[0].value);
             console.log('The graph is successfully built from the variant');
         }
-        this.components = this.build_scc(graph)
+        this.components = this.buildScc(graph)
         this.graph = graph
         this.num = 0
+        this.step = 1
+        this.ball = 100
     }
 
-    getArea(): React.SFC<{}> {
+    getArea(): React.FunctionComponent {
         store.getState().graph = this.graph;
         return () => <GraphVisualizer
             graph={this.graph}
             adapterType={'readable'}
-            incidentEdges={true}
+            incidentEdges={false}
             namedEdges={true}
             isDirected={true}
         />;
@@ -86,14 +90,17 @@ class App extends Template {
             }
             ToolButtonList.prototype.beforeComplete = beforeComplete.bind(this);
             ToolButtonList.prototype.help = () =>
-                'Для окраски ребра в синий или красный цвет щелкните по ребру, а затем по соответствующей кнопке\n';
+                'Для раскарски ребер можно воспользоваться тремя цветами:'+
+                'Для окраски ребра в зеленый цвет щелкните по ребру\n' +
+                'Для окраски ребра в синий или красный цвет щелкните по ребру, а затем по соответствующей кнопке\n'+
+                'Гарантируется, что циклов не больше трех(по цислц цветов).\n';;
 
             ToolButtonList.prototype.toolButtons = {
                 "http://gl-backend.svtz.ru:5000/odata/downloadImage(name='color_blue.png')": () => {
-                    this.change_color('blue');
+                    this.changeColor('blue');
                 },
                 "http://gl-backend.svtz.ru:5000/odata/downloadImage(name='color_red.png')": () => {
-                    this.change_color('red');
+                    this.changeColor('red');
                 }
             };
             return ToolButtonList;
@@ -101,7 +108,7 @@ class App extends Template {
         return Toolbar;
     }
 
-    change_color(color: string) {
+    changeColor(color: string) {
         const Out = sessionStorage.getItem('out');
         const In = sessionStorage.getItem('in');
         sessionStorage.removeItem('out');
@@ -109,13 +116,13 @@ class App extends Template {
         select(`#edge_${Out}_${In}`).style('stroke', color);
     }
 
-    get_vertex_color(i: string){
+    getVertexColor(i: string){
         let vertex = select(`#vertex_${i}`)
         let color = vertex.style('fill')
         return color
     }
 
-    get_edge_color(edge: IEdgeView){
+    getEdgeColor(edge: IEdgeView){
         let Out: string = edge.vertexOne;
         let In: string = edge.vertexTwo;
         let color: string = "black"
@@ -127,8 +134,24 @@ class App extends Template {
         }
         return color
     }
+    getVertexCoordinate(i: string){
+        let vertex = select(`#vertex_${i}`)
+        let x = Number(vertex.attr('cx'))
+        let y = Number(vertex.attr('cy'))
+        let coord: number[] = [x, y]
+        return coord
+    }
 
-    append_edge(scc_student: any, vertexOneName: string, vertexTwoName: string, color: string){
+    compareVertiesCoordinate(vertexOneName: string, vertexTwoName: string){
+        let vertexOneNameCoord = this.getVertexCoordinate(vertexOneName)
+        let vertexTwoNameCoord = this.getVertexCoordinate(vertexTwoName)
+        let diffX = Math.abs(vertexOneNameCoord[0] - vertexTwoNameCoord[0])
+        let diffy = Math.abs(vertexOneNameCoord[1] - vertexTwoNameCoord[1])
+
+        return !(diffX > 15 || diffy > 15);
+    }
+
+    appendEdge(scc_student: any, vertexOneName: string, vertexTwoName: string, color: string){
         if (scc_student[color].length === 0){
             scc_student[color].push(vertexOneName)
             scc_student[color].push(vertexTwoName)
@@ -142,7 +165,7 @@ class App extends Template {
         return scc_student
     }
 
-    check_answer(student_answer: number[][], answer: number[][]): boolean{
+    checkAnswer(student_answer: number[][], answer: number[][]): boolean{
         let res: boolean[] = []
         if (answer.length !== student_answer.length){
             return false
@@ -164,48 +187,95 @@ class App extends Template {
         }
         return false
     }
-    // check_condensat(i: string){
-    //     let vertix = select(`#vertex_${i}`)
-    //     let x = vertix.style('cx')
-    //     let y = vertix.style('cy')
-    // }
+    checkCondensate(){
+        let CondensateComponents = this.buildCorrectAnswer()
+        for (let i: number = 0; i < CondensateComponents.length; i++) {
+            let component: any = CondensateComponents[i]
 
-    calculate() {
-        let student_answer = this.build_student_answer()
-        let answer = this.build_correct_answer()
+            for (let j: number = 0; j < component.length; j++) {
+                let vertex = component[j]
 
-        if (this.check_answer(student_answer, answer)){
-            alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
-            return {success: true , fee: 0}
-        }
-        else {
-            alert("Вы ошиблись. Попробуйте еще раз.")
-            this.num = this.num + 1
-            if ( this.num > 4 ){
-                fee = 0
+                for (let f: number = 0; f < component.length; f++) {
+                    let res: boolean = this.compareVertiesCoordinate(vertex, component[f])
+                    if(!res){
+                        return false
+                    }
+                }
             }
-            if (this.num === 4){
-                fee = 61
-            }
-            return {success: false , fee: fee}
+            for (let c: number = 0; c < CondensateComponents.length; c++) {
+                if(i !== c){
+                        let res: boolean = this.compareVertiesCoordinate(component[0], CondensateComponents[c][0])
+                        if(res){
+                            return false
+                        }
+                    }
+                }
         }
+        alert("condensate")
+        return true
     }
 
-    build_correct_answer(): any{
+    calculate() {
+        let student_answer = this.buildStudentAnswer()
+        let answer = this.buildCorrectAnswer()
+
+        if(this.step === 1){
+            if (this.checkAnswer(student_answer, answer)){
+                alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
+                this.step = 2
+                this.ball = 100 - (this.num * 13)
+                return {success: true , fee: 0}
+            }
+            else {
+                this.num = this.num + 1
+                if ( this.num > 4 ){
+                    fee = 0
+                    this.ball = 0
+                }
+                if (this.num === 4){
+                    fee = 61
+                    this.ball = 0
+                    alert("Упражнение окончено. Вы допустили слишом много ошибок.")
+                }
+                else if (this.num < 4){
+                    alert("Вы ошиблись. Попробуйте еще раз.")
+                }
+                return {success: false , fee: fee}
+            }
+        }
+        else if (this.step === 2){
+            this.step = 3
+            if (this.checkCondensate()){
+                alert("Поздравляю, вы справились с заданием.")
+                return {success: true , fee: 0}
+            }
+            else {
+                alert("Упражнение окончено. Вы допустили слишом много ошибок.")
+                return {success: false, fee: this.ball}
+            }
+        }
+        if (this.ball > 60){
+            return {success: true, fee: 0}
+        }
+        return {success: false, fee: 0}
+
+    }
+
+    buildCorrectAnswer(): any{
         let answer: any = []
         for (let i: number = 0; i < this.components.length; i++) {
-            let vertexs: any = this.get_scc(this.components[i])
+            let vertexs: any = this.getScc(this.components[i])
             answer.push(vertexs)
         }
         return answer
     }
 
-    build_student_answer(): any{
+    buildStudentAnswer(): any{
         let edges: any = this.graph.edges
         let scc_student: any = {"blue":[], "red": [], "black": [], "green": []}
         for (let i: number = 0; i < edges.length; i++) {
-            let color: string = this.get_edge_color(edges[i])
-            scc_student = this.append_edge(scc_student,edges[i].vertexOne.name, edges[i].vertexTwo.name, color )
+            let color: string = this.getEdgeColor(edges[i])
+            scc_student = this.appendEdge(scc_student,edges[i].vertexOne.name, edges[i].vertexTwo.name, color )
         }
         let answer: any = []
         if (scc_student["blue"].length > 0){
@@ -214,8 +284,11 @@ class App extends Template {
         if (scc_student["red"].length > 0){
             answer.push(scc_student["red"])
         }
+        if (scc_student["green"].length > 0){
+            answer.push(scc_student["green"])
+        }
         for (let i: number = 0; i < this.graph.vertices.length; i++) {
-            let color = this.get_vertex_color(this.graph.vertices[i].name)
+            let color = this.getVertexColor(this.graph.vertices[i].name)
             if(color === "rgb(255, 0, 0)"){
              answer.push([this.graph.vertices[i].name])
             }
@@ -223,7 +296,7 @@ class App extends Template {
         return answer
     }
 
-    get_scc(component: IGraph<IVertex, IEdge>){
+    getScc(component: IGraph<IVertex, IEdge>){
         let vertices = component.vertices
         let vertices_name = []
 
@@ -233,7 +306,7 @@ class App extends Template {
         return vertices_name
     }
 
-    build_scc(graph: IGraph<IVertex, IEdge>):IGraph<IVertex, IEdge>[]{
+    buildScc(graph: IGraph<IVertex, IEdge>):IGraph<IVertex, IEdge>[]{
         return SccBuilderNew.findComponents(graph)
     }
 
@@ -302,7 +375,6 @@ export class SccBuilderNew {
 
                     }
                     if (edges.length == 1){
-                        console.log(edges[0].vertexOne, graph.vertices[j])
                         if (edges[0].vertexOne == graph.vertices[j]){
                             result[i][j] = 1;
                         }
