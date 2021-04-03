@@ -188,31 +188,30 @@ class App extends Template {
         return false
     }
     checkCondensate(){
-        let CondensateComponents = this.buildCorrectAnswer()
-        for (let i: number = 0; i < CondensateComponents.length; i++) {
-            let component: any = CondensateComponents[i]
-
-            for (let j: number = 0; j < component.length; j++) {
-                let vertex = component[j]
-
-                for (let f: number = 0; f < component.length; f++) {
-                    let res: boolean = this.compareVertiesCoordinate(vertex, component[f])
-                    if(!res){
-                        return false
-                    }
-                }
-            }
-            for (let c: number = 0; c < CondensateComponents.length; c++) {
-                if(i !== c){
-                        let res: boolean = this.compareVertiesCoordinate(component[0], CondensateComponents[c][0])
-                        if(res){
-                            return false
-                        }
-                    }
-                }
-        }
-        alert("condensate")
-        return true
+        // let CondensateComponents = this.buildCorrectAnswer()
+        // for (let i: number = 0; i < CondensateComponents.length; i++) {
+        //     let component: any = CondensateComponents[i]
+        //
+        //     for (let j: number = 0; j < component.length; j++) {
+        //         let vertex = component[j]
+        //
+        //         for (let f: number = 0; f < component.length; f++) {
+        //             let res: boolean = this.compareVertiesCoordinate(vertex, component[f])
+        //             if(!res){
+        //                 return false
+        //             }
+        //         }
+        //     }
+        //     for (let c: number = 0; c < CondensateComponents.length; c++) {
+        //         if(i !== c){
+        //                 let res: boolean = this.compareVertiesCoordinate(component[0], CondensateComponents[c][0])
+        //                 if(res){
+        //                     return false
+        //                 }
+        //             }
+        //         }
+        // }
+        // return true
     }
 
     calculate() {
@@ -221,7 +220,7 @@ class App extends Template {
 
         if(this.step === 1){
             if (this.checkAnswer(student_answer, answer)){
-                alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
+                // alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
                 this.step = 2
                 this.ball = 100 - (this.num * 13)
                 return {success: true , fee: 0}
@@ -243,17 +242,17 @@ class App extends Template {
                 return {success: false , fee: fee}
             }
         }
-        else if (this.step === 2){
-            this.step = 3
-            if (this.checkCondensate()){
-                alert("Поздравляю, вы справились с заданием.")
-                return {success: true , fee: 0}
-            }
-            else {
-                alert("Упражнение окончено. Вы допустили слишом много ошибок.")
-                return {success: false, fee: this.ball}
-            }
-        }
+        // else if (this.step === 2){
+        //     this.step = 3
+        //     if (this.checkCondensate()){
+        //         alert("Поздравляю, вы справились с заданием.")
+        //         return {success: true , fee: 0}
+        //     }
+        //     else {
+        //         alert("Упражнение окончено. Вы допустили слишом много ошибок.")
+        //         return {success: false, fee: this.ball}
+        //     }
+        // }
         if (this.ball > 60){
             return {success: true, fee: 0}
         }
@@ -275,7 +274,7 @@ class App extends Template {
         let scc_student: any = {"blue":[], "red": [], "black": [], "green": []}
         for (let i: number = 0; i < edges.length; i++) {
             let color: string = this.getEdgeColor(edges[i])
-            scc_student = this.appendEdge(scc_student,edges[i].vertexOne.name, edges[i].vertexTwo.name, color )
+            scc_student = this.appendEdge(scc_student,edges[i].vertexOne.name, edges[i].vertexTwo.name, color)
         }
         let answer: any = []
         if (scc_student["blue"].length > 0){
