@@ -1,0 +1,53 @@
+{"data": [
+    {
+        "type": "graph",
+        "isDirected": "true",
+        "value": {
+            "vertices": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+            ],
+            "edges": [
+                {
+                    "source": "2",
+                    "target": "1",
+                    "isDirected": "true"
+
+                },
+                {
+                    "source": "3",
+                    "target": "2",
+                    "isDirected": "true"
+
+                },
+                {
+                    "source": "3",
+                    "target": "4",
+                    "isDirected": "true"
+
+                },
+                {
+                    "source": "4",
+                    "target": "2",
+                    "isDirected": "true"
+
+                },
+                {
+                    "source": "1",
+                    "target": "4",
+                    "isDirected": "true"
+
+                },
+                {
+                    "source": "5",
+                    "target": "1",
+                    "isDirected": "true"
+
+                }
+            ]
+        }
+    }
+] }
