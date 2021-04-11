@@ -5,7 +5,7 @@ import './App.css';
 import {select} from 'd3-selection'
 import {Edge, Graph, IEdge, IGraph, IVertex, UndirectedGraph, Vertex} from 'graphlabs.core.graphs'
 import {Template, ToolButtonList, Toolbar, store, IEdgeView, GraphVisualizer} from "graphlabs.core.template";
-import * as data_json from "./stub.json";
+// import * as data_json from "./stub.json";
 import {DirectedGraph} from "graphlabs.core.graphs/build/main/DirectedGraph";
 import {MatrixOperations} from "graphlabs.core.graphs/build/helpers/MatrixOperations";
 
@@ -49,10 +49,10 @@ class App extends Template {
     }
 
     setGraph(){
-        // const data = sessionStorage.getItem('variant');
+        const data = sessionStorage.getItem('variant');
         let graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
         let objectData;
-        let data: string = JSON.stringify(data_json)
+        // let data: string = JSON.stringify(data_json)
         try {
             objectData = JSON.parse(data|| 'null');
             console.log('The variant is successfully parsed');
@@ -60,7 +60,8 @@ class App extends Template {
             console.log('Error while JSON parsing');
         }
         if (data) {
-            graph = this.graphManager(objectData.default.data[0].value);
+            // graph = this.graphManager(objectData.default.data[0].value);
+            graph = this.graphManager(objectData.data.value);
             console.log('The graph is successfully built from the variant');
         }
         this.components = this.buildScc(graph)
