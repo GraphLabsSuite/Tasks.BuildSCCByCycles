@@ -5,7 +5,6 @@ import './App.css';
 import {select} from 'd3-selection'
 import {Edge, Graph, IEdge, IGraph, IVertex, UndirectedGraph, Vertex} from 'graphlabs.core.graphs'
 import {Template, ToolButtonList, Toolbar, store, IEdgeView, GraphVisualizer} from "graphlabs.core.template";
-// import * as data_json from "./stub.json";
 import {DirectedGraph} from "graphlabs.core.graphs/build/main/DirectedGraph";
 import {MatrixOperations} from "graphlabs.core.graphs/build/helpers/MatrixOperations";
 
@@ -28,7 +27,6 @@ class App extends Template {
     }
 
     protected graphManager(data: any): IGraph<IVertex, IEdge> {
-        // TODO: fix the types
         const graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
         if (data) {
             let vertices = data.vertices;
@@ -311,7 +309,7 @@ class App extends Template {
     }
 
     buildScc(graph: IGraph<IVertex, IEdge>):IGraph<IVertex, IEdge>[]{
-        return SccBuilderNew.findComponents(graph)
+        return SccBuilderDirected.findComponents(graph)
     }
 
     task() {
@@ -336,14 +334,14 @@ class App extends Template {
 
 }
 
-export class SccBuilderNew {
+export class SccBuilderDirected {
     /**
      * Finds strongly connected components
      * @param graph
      * @returns {IGraph[]}
      */
     public static findComponents(graph: IGraph<IVertex, IEdge>): IGraph<IVertex, IEdge>[] {
-        return (new SccBuilderNew(graph)).buildComponents();
+        return (new SccBuilderDirected(graph)).buildComponents();
     }
 
     private readonly _accessibilityMatrix: number[][];
@@ -353,7 +351,7 @@ export class SccBuilderNew {
     private constructor(graph: IGraph<IVertex, IEdge>) {
         this._graph = graph;
         this._vertices = this._graph.vertices;
-        this._accessibilityMatrix = SccBuilderNew.buildAccessibilityMatrix(graph);
+        this._accessibilityMatrix = SccBuilderDirected.buildAccessibilityMatrix(graph);
     }
 
     public static buildAccessibilityMatrix(graph: IGraph<IVertex, IEdge>): number[][] {
@@ -400,7 +398,6 @@ export class SccBuilderNew {
         return result;
     }
 
-    //TODO: кажется, тут местами можно немного проще сделать
     private buildComponents(): IGraph<IVertex, IEdge>[] {
         const s: number[][] = [];
         for (let i: number = 0; i < this._graph.vertices.length; i++) {
