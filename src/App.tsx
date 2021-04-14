@@ -68,7 +68,7 @@ class App extends Template {
             console.log('The graph is successfully built from the variant');
         }
         this.components = this.buildScc(graph)
-        console.log("component", this.components)
+        console.log("components have built")
         this.graph = graph
         this.num = 0
         this.step = 1
@@ -225,7 +225,7 @@ class App extends Template {
 
         if(this.step === 1){
             if (this.checkAnswer(student_answer, answer)){
-                // alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
+                alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
                 this.step = 2
                 this.ball = 100 - (this.num * 13)
                 return {success: true , fee: 0}
