@@ -7,6 +7,8 @@ import {Edge, Graph, IEdge, IGraph, IVertex, UndirectedGraph, Vertex} from 'grap
 import {Template, ToolButtonList, Toolbar, store, IEdgeView, GraphVisualizer} from "graphlabs.core.template";
 import {DirectedGraph} from "graphlabs.core.graphs/build/main/DirectedGraph";
 import {MatrixOperations} from "graphlabs.core.graphs/build/helpers/MatrixOperations";
+// import * as data_json from "./stub.json";
+
 
 let fee: number = 13
 
@@ -315,15 +317,15 @@ class App extends Template {
     task() {
         return () => (
             <div style={{overflow: "auto"}}>
-                <p>Цель: Найти компонент сильной связности с помощь циклового метода</p>
+                <p>Цель: Найти компоненты сильной связности с помощь циклового метода</p>
                 <p>Данное задание состоит из двух этапов, выполнять их необходимо строго по очереди:</p>
                 <div style={{overflow: "auto"}}> <ol>
                     <li>
                         <ul>
-                            <li>Необходимо выделить вершину сток, исток, нажав на них.</li>
-                            <li>Выделить простые циклы(выделить ребра графа), входящие в одну компоненты сильной связности.</li>
+                            <li>Необходимо выделить вершины сток, исток, нажав на них.</li>
+                            <li>Выделить простые циклы(выделить ребра графа), входящие в одну компоненту сильной связности.</li>
                             <li>Если существуют компоненты сильной связности, состоящие из одной вершины, необходимо нажать на них.</li>
-                            <li>Нажать на кнопку проверки в левом меню.Если задание постреено правильно, вы можете переходить ко второму этапу</li>
+                            <li>Нажать на кнопку проверки в левом меню.Если задание построено правильно, вы можете переходить ко второму этапу</li>
                         </ul>
                     </li>
                     <li>Необходимо построить конденсат, перетащив вершины.</li>
