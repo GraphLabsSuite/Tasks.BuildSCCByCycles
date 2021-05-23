@@ -3,13 +3,31 @@ import './App.css';
 
 // @ts-ignore
 import {select} from 'd3-selection'
-import {Edge, Graph, IEdge, IGraph, IVertex, SccBuilder, Vertex} from 'graphlabs.core.graphs'
+import {DirectedGraph, Edge, Graph, IEdge, IGraph, IVertex, UndirectedGraph, Vertex} from 'graphlabs.core.graphs'
 import {GraphVisualizer, IEdgeView, store, Template, Toolbar, ToolButtonList} from "graphlabs.core.template";
 import * as data_json from "./stub.json";
-
+import {MatrixOperations} from "graphlabs.core.graphs/build/helpers/MatrixOperations";
 
 let fee: number = 13
 
+class VertexDirect extends Vertex {
+    // @ts-ignore
+    public isAdjacent(graph: IGraph<IVertex, IEdge>, vertex: IVertex): boolean {
+        if (graph.isDirected == true){
+            if (graph.edges.some((e: IEdge) =>
+                (vertex && this && ((e.vertexTwo.name === this.name
+                    && e.vertexOne.name === vertex.name)))))
+                return true;
+        }else if (graph.edges.some((e: IEdge) =>
+            (vertex && this && ((e.vertexOne.name === this.name
+                && e.vertexTwo.name === vertex.name)
+                || (e.vertexOne.name === vertex.name
+                    && e.vertexTwo.name === this.name))))){
+            return true;
+        } else
+            return false;
+    }
+}
 
 class App extends Template {
 
@@ -32,13 +50,14 @@ class App extends Template {
             let vertices = data.vertices;
             let edges = data.edges;
             vertices.forEach((v: any) => {
-                graph.addVertex(new Vertex(v));
+                graph.addVertex(new VertexDirect(v));
             });
+
             edges.forEach((e: any) => {
                 if (e.name) {
                     graph.addEdge(new Edge(graph.getVertex(e.source)[0], graph.getVertex(e.target)[0], e.name[0], '', true));
                 } else {
-                    graph.addEdge(new Edge(graph.getVertex(e.source)[0], graph.getVertex(e.target)[0], '', '', true));
+                    graph.addEdge(new Edge(graph.getVertex(e.source)[0], graph.getVertex(e.target)[0], '', '', true))
                 }
             });
 
@@ -54,19 +73,16 @@ class App extends Template {
         let data: string = JSON.stringify(data_json)
         try {
             objectData = JSON.parse(data|| 'null');
-            console.log(objectData)
             console.log('The variant is successfully parsed');
         } catch (err) {
             console.log('Error while JSON parsing');
         }
         if (data) {
             graph = this.graphManager(objectData.default.data[0].value);
-            // graph = this.graphManager(objectData.data[0].value);
-            console.log("graph", graph)
+            console.log(graph)
             console.log('The graph is successfully built from the variant');
         }
-        this.components = this.buildScc(graph)
-        console.log("components have built")
+        this.components = SccBuilder.findComponents(graph)
         this.graph = graph
         this.effort = 0
         this.step = 1
@@ -93,10 +109,10 @@ class App extends Template {
             }
             ToolButtonList.prototype.beforeComplete = beforeComplete.bind(this);
             ToolButtonList.prototype.help = () =>
-                'Для раскарски ребер можно воспользоваться тремя цветами:'+
-                'Для окраски ребра в зеленый цвет щелкните по ребру\n' +
-                'Для окраски ребра в синий или красный цвет щелкните по ребру, а затем по соответствующей кнопке\n'+
-                'Гарантируется, что циклов не больше трех(по цислц цветов).\n';
+                ' Для раскарски ребер можно воспользоваться тремя цветами:'+
+                ' Для окраски ребра в зеленый цвет щелкните по ребру\n' +
+                ' Для окраски ребра в синий или красный цвет щелкните по ребру, а затем по соответствующей кнопке\n'+
+                ' Гарантируется, что циклов не больше трех(по цислц цветов).\n';
 
             ToolButtonList.prototype.toolButtons = {
                 "http://gl-backend.svtz.ru:5000/odata/downloadImage(name='color_blue.png')": () => {
@@ -294,9 +310,6 @@ class App extends Template {
         return verticesName
     }
 
-    buildScc(graph: IGraph<IVertex, IEdge>):IGraph<IVertex, IEdge>[]{
-        return SccBuilder.findComponents(graph)
-    }
 
     task() {
         return () => (
@@ -317,8 +330,105 @@ class App extends Template {
                 </div>
             </div>);
     }
-
 }
+
+
+
+export class SccBuilder {
+    /**
+     * Finds strongly connected components
+     * @param graph
+     * @returns {IGraph[]}
+     */
+    public static findComponents(graph: IGraph<IVertex, IEdge>, storng: boolean = true): IGraph<IVertex, IEdge>[] {
+        return (new SccBuilder(graph, storng)).buildComponents();
+    }
+
+    private readonly _accessibilityMatrix: number[][];
+    private readonly _graph: IGraph<IVertex, IEdge>;
+    private readonly _vertices: IVertex[];
+
+    //параметр strong отвечает за то, нужнали у орграфа сильная (true) или слабая (false) связность
+    private constructor(graph: IGraph<IVertex, IEdge>, storng: boolean = true) {
+        this._graph = graph;
+        this._vertices = this._graph.vertices;
+        this._accessibilityMatrix = SccBuilder.buildAccessibilityMatrix(graph, storng);
+    }
+
+    public static buildAccessibilityMatrix(graph: IGraph<IVertex, IEdge>, strong: boolean = true): number[][] {
+        let result: number[][] = [];
+        let diagonal: number[][] = [];
+        let adjacency: number[][] = [];
+        for (let i: number = 0; i < graph.vertices.length; i++) {
+            result[i] = [];
+            diagonal[i] = [];
+            adjacency[i] = [];
+            for (let j: number = 0; j < graph.vertices.length; j++) {
+                result[i][j] = 0;
+                if (i == j) {
+                    diagonal[i][j] = 1;
+                } else {
+                    diagonal[i][j] = 0;
+                }
+                if (graph.vertices[j].isAdjacent(graph, graph.vertices[i])) {
+                    adjacency[i][j] = 1;
+                } else {
+                    adjacency[i][j] = 0;
+                }
+            }
+        }
+        for (let i: number = 1; i < graph.vertices.length; i++){
+            result = MatrixOperations.Sum(result, MatrixOperations.Power(adjacency, i))
+        }
+        result = MatrixOperations.Sum(result, diagonal);
+        result = MatrixOperations.Binary(result);
+        // if (!strong)
+        //     result = MatrixOperations.DirectedAccessibility(result);
+        return result;
+    }
+
+    private buildComponents(): IGraph<IVertex, IEdge>[] {
+        const s: number[][] = [];
+        for (let i: number = 0; i < this._graph.vertices.length; i++) {
+            s[i] = [];
+            for (let j: number = 0; j < this._graph.vertices.length; j++)
+                s[i][j] = this._accessibilityMatrix[i][j] * this._accessibilityMatrix[j][i];
+        }
+
+        const added: boolean[] = new Array(this._graph.vertices.length);
+        for (let i: number = 0; i < added.length; i++)
+            added[i] = false;
+
+        const components: IGraph<IVertex, IEdge>[] = [];
+        for (let i: number = 0; i < this._graph.vertices.length; i++) {
+            if (added[i])
+                continue;
+            // @ts-ignore
+            const scc: IGraph<IVertex, IEdge> = this._graph.isDirected
+                ? new DirectedGraph()
+                : new UndirectedGraph();
+
+            added[i] = true;
+            scc.addVertex(this._vertices[i]);
+            for (let j: number = 0; j < this._graph.vertices.length; j++)
+                if (!added[j] && s[i][j] == 1) {
+                    added[j] = true;
+                    scc.addVertex(this._vertices[j]);
+                }
+            components.push(scc);
+        }
+
+        this._graph.edges.forEach(edge => {
+            const whereToAdd =
+                components.filter(c => c.vertices.indexOf(edge.vertexOne) != -1 &&
+                    c.vertices.indexOf(edge.vertexTwo) != -1);
+            whereToAdd.forEach(c => c.addEdge(edge));
+        });
+        return components;
+    }
+}
+
+
 
 export default App;
 
