@@ -13,7 +13,10 @@
                 "7",
                 "8",
                 "9",
-                "10"
+                "10",
+                "11",
+                "12",
+                "13"
             ],
             "edges": [
                 {
@@ -90,6 +93,31 @@
                 {
                     "source": "10",
                     "target": "9",
+                    "isDirected": true
+                },
+                {
+                    "source": "11",
+                    "target": "12",
+                    "isDirected": true
+                },
+                {
+                    "source": "12",
+                    "target": "11",
+                    "isDirected": true
+                },
+                {
+                    "source": "12",
+                    "target": "4",
+                    "isDirected": true
+                },
+                {
+                    "source": "1",
+                    "target": "13",
+                    "isDirected": true
+                },
+                {
+                    "source": "13",
+                    "target": "3",
                     "isDirected": true
                 }
             ]

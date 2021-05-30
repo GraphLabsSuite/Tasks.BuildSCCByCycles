@@ -6,7 +6,6 @@ import {select} from 'd3-selection'
 import {DirectedGraph, Edge, Graph, IEdge, IGraph, IVertex, SccBuilder, UndirectedGraph, Vertex} from 'graphlabs.core.graphs'
 import {GraphVisualizer, IEdgeView, store, Template, Toolbar, ToolButtonList} from "graphlabs.core.template";
 import * as data_json from "./stub.json";
-import {MatrixOperations} from "graphlabs.core.graphs/build/helpers/MatrixOperations";
 
 let fee: number = 13
 
@@ -48,11 +47,10 @@ class App extends Template {
     }
 
     setGraph(){
-        // const data = sessionStorage.getItem('variant');
-        // console.log("data", data)
+        const data = sessionStorage.getItem('variant');
         let graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
         let objectData;
-        let data: string = JSON.stringify(data_json)
+        // let data: string = JSON.stringify(data_json)
         try {
             objectData = JSON.parse(data|| 'null');
             console.log('The variant is successfully parsed');
@@ -60,7 +58,8 @@ class App extends Template {
             console.log('Error while JSON parsing');
         }
         if (data) {
-            graph = this.graphManager(objectData.default.data[0].value);
+            // graph = this.graphManager(objectData.default.data[0].value);
+            graph = this.graphManager(objectData.data[0].value);
             console.log(graph)
             console.log('The graph is successfully built from the variant');
         }
@@ -91,10 +90,10 @@ class App extends Template {
             }
             ToolButtonList.prototype.beforeComplete = beforeComplete.bind(this);
             ToolButtonList.prototype.help = () =>
-                ' Для раскарски ребер можно воспользоваться тремя цветами:'+
+                ' Для раскарски ребер можно воспользоваться 7 цветами:'+
                 ' Для окраски ребра в зеленый цвет щелкните по ребру\n' +
-                ' Для окраски ребра в синий или красный цвет щелкните по ребру, а затем по соответствующей кнопке\n'+
-                ' Гарантируется, что циклов не больше 6(по числу цветов).\n';
+                ' Для окраски ребра в другие цвет щелкните по ребру, а затем по соответствующей кнопке\n'+
+                ' Гарантируется, что циклов не больше 7(по числу цветов).\n';
 
             ToolButtonList.prototype.toolButtons = {
                 "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAAwklEQVRYhe3ZMQ6EIBCFYQ6DJ+IGxsJbTEPiJbiWFVa0EDzC28I1YY2h3BnjkPwJ5Ve/Mbi8dQW8B4j+n/dAjFcRYM5PKYBzgDH8OQfkfEHuO2AtP65tGIBaG+Q48qPumqYvMiV+TK+UABMCP6RXCIAh4of0WpYHIIkUqUhZKVKR0lKkIqWlSEVKS5GKlJYiFSktRb4P+YhVbdv4Ib1Sguyld56bObrWY6PmRrVZe2z5P9eHnGVdH0q5OZGcL0Z5d5wPlcr1BokdprAAAAAASUVORK5CYII=": () => {
@@ -172,6 +171,11 @@ class App extends Template {
         else if (studentSCC[color].indexOf(vertexTwoName) === -1){
             studentSCC[color].push(vertexTwoName)
         }
+        return studentSCC
+    }
+    appendVertexEdge(studentSCC: any, vertexOneName: string, vertexTwoName: string, color: string){
+        studentSCC[color].push(vertexOneName)
+        studentSCC[color].push(vertexTwoName)
         return studentSCC
     }
 
@@ -269,6 +273,23 @@ class App extends Template {
         return answer
     }
 
+    deleteDuplicateVertex(scc: any){
+        let vertex_number: any = {}
+        if( scc.length === 2) return scc
+        for (let i: number = 0; i < scc.length; i++) {
+            vertex_number[scc[i]] = 0
+        }
+        for (let i: number = 0; i < scc.length; i++) {
+           vertex_number[scc[i]] = ++vertex_number[scc[i]]
+        }
+        let res: any = []
+        for (let key in vertex_number) {
+            const value = vertex_number[key]
+            if (value > 1) res.push(key)
+        }
+        return res
+    }
+
     buildStudentAnswer(): any{
         let edges: any = this.graph.edges
         let studentSCC: any = {
@@ -277,7 +298,11 @@ class App extends Template {
         }
         for (let i: number = 0; i < edges.length; i++) {
             let color: string = this.getEdgeColor(edges[i])
-            studentSCC = this.appendEdge(studentSCC, edges[i].vertexOne.name, edges[i].vertexTwo.name, color)
+            studentSCC = this.appendVertexEdge(studentSCC, edges[i].vertexOne.name, edges[i].vertexTwo.name, color)
+        }
+        for (let key in studentSCC) {
+            let value = studentSCC[key]
+            studentSCC[key] = this.deleteDuplicateVertex(value)
         }
         let answer: any = []
         if (studentSCC["blue"].length > 0){
