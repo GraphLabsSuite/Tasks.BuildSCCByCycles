@@ -47,10 +47,10 @@ class App extends Template {
     }
 
     setGraph(){
-        const data = sessionStorage.getItem('variant');
+        // const data = sessionStorage.getItem('variant');
         let graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
         let objectData;
-        // let data: string = JSON.stringify(data_json)
+        let data: string = JSON.stringify(data_json)
         try {
             objectData = JSON.parse(data|| 'null');
             console.log('The variant is successfully parsed');
@@ -58,8 +58,8 @@ class App extends Template {
             console.log('Error while JSON parsing');
         }
         if (data) {
-            // graph = this.graphManager(objectData.default.data[0].value);
-            graph = this.graphManager(objectData.data[0].value);
+            graph = this.graphManager(objectData.default.data[0].value);
+            // graph = this.graphManager(objectData.data[0].value);
             console.log(graph)
             console.log('The graph is successfully built from the variant');
         }
@@ -290,20 +290,59 @@ class App extends Template {
         return res
     }
 
+
+    compareDict(studentAnswer:any, answer: any): boolean {
+        let res: boolean[] = []
+        let num1 = 0
+        let num2 = 0
+        if (answer.length !== studentAnswer.length) {
+            return false
+        }
+        for (let i in answer) {
+            if(answer[i].length > 0){
+                num1=++num1
+                let component: string = JSON.stringify(answer[i].sort())
+                for (let j in studentAnswer) {
+                    if(studentAnswer[j].length > 0){
+                        num2=++num2
+                        let studentComponent: string = JSON.stringify(studentAnswer[j].sort())
+
+                        console.log("component", component)
+                        console.log("st", studentComponent)
+                        if (studentComponent === component) {
+                            res.push(true)
+                        }}
+                }}
+        }
+        if (res.length === num1 && num1 == num2) return true
+        return false
+    }
     buildStudentAnswer(): any{
         let edges: any = this.graph.edges
         let studentSCC: any = {
             "blue":[], "red": [], "black": [], "green": [],
             "fuchsia": [], "yellow": [], "silver": [], "sienna": []
         }
+        let studentSCCWithDubl: any = {
+            "blue":[], "red": [], "black": [], "green": [],
+            "fuchsia": [], "yellow": [], "silver": [], "sienna": []
+        }
         for (let i: number = 0; i < edges.length; i++) {
             let color: string = this.getEdgeColor(edges[i])
-            studentSCC = this.appendVertexEdge(studentSCC, edges[i].vertexOne.name, edges[i].vertexTwo.name, color)
+            studentSCC = this.appendEdge(studentSCC, edges[i].vertexOne.name, edges[i].vertexTwo.name, color)
+            studentSCCWithDubl = this.appendVertexEdge(studentSCCWithDubl, edges[i].vertexOne.name, edges[i].vertexTwo.name, color)
         }
-        for (let key in studentSCC) {
-            let value = studentSCC[key]
-            studentSCC[key] = this.deleteDuplicateVertex(value)
+        for (let key in studentSCCWithDubl) {
+            let value = studentSCCWithDubl[key]
+            studentSCCWithDubl[key] = this.deleteDuplicateVertex(value)
         }
+        delete studentSCCWithDubl["black"]
+        delete studentSCC["black"]
+
+        let res = this.compareDict(studentSCC, studentSCCWithDubl)
+        console.log(res)
+        if (!res) return []
+
         let answer: any = []
         if (studentSCC["blue"].length > 0){
             answer.push(studentSCC["blue"])
