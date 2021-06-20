@@ -3,12 +3,10 @@ import './App.css';
 
 // @ts-ignore
 import {select} from 'd3-selection'
-import {Edge, Graph, IEdge, IGraph, IVertex, UndirectedGraph, Vertex} from 'graphlabs.core.graphs'
-import {Template, ToolButtonList, Toolbar, store, IEdgeView, GraphVisualizer} from "graphlabs.core.template";
-import {DirectedGraph} from "graphlabs.core.graphs/build/main/DirectedGraph";
+import {DirectedGraph, Edge, Graph, IEdge, IGraph, IVertex, SccBuilder, UndirectedGraph, Vertex} from 'graphlabs.core.graphs'
+import {GraphVisualizer, IEdgeView, store, Template, Toolbar, ToolButtonList} from "graphlabs.core.template";
+import * as data_json from "./stub.json";
 import {MatrixOperations} from "graphlabs.core.graphs/build/helpers/MatrixOperations";
-// import * as data_json from "./stub.json";
-
 
 let fee: number = 13
 
@@ -18,7 +16,7 @@ class App extends Template {
     step: number = 1
     graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
     components: IGraph<IVertex, IEdge>[] = []
-    num: number = 0
+    effort: number = 0
     ball: number = 100
 
     constructor(props: {}) {
@@ -36,11 +34,12 @@ class App extends Template {
             vertices.forEach((v: any) => {
                 graph.addVertex(new Vertex(v));
             });
+
             edges.forEach((e: any) => {
                 if (e.name) {
                     graph.addEdge(new Edge(graph.getVertex(e.source)[0], graph.getVertex(e.target)[0], e.name[0], '', true));
                 } else {
-                    graph.addEdge(new Edge(graph.getVertex(e.source)[0], graph.getVertex(e.target)[0], '', '', true));
+                    graph.addEdge(new Edge(graph.getVertex(e.source)[0], graph.getVertex(e.target)[0], '', '', true))
                 }
             });
 
@@ -49,28 +48,25 @@ class App extends Template {
     }
 
     setGraph(){
-        const data = sessionStorage.getItem('variant');
-        console.log("data", data)
+        // const data = sessionStorage.getItem('variant');
+        // console.log("data", data)
         let graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
         let objectData;
-        // let data: string = JSON.stringify(data_json)
+        let data: string = JSON.stringify(data_json)
         try {
             objectData = JSON.parse(data|| 'null');
-            console.log(objectData)
             console.log('The variant is successfully parsed');
         } catch (err) {
             console.log('Error while JSON parsing');
         }
         if (data) {
-            // graph = this.graphManager(objectData.default.data[0].value);
-            graph = this.graphManager(objectData.data[0].value);
-            console.log("graph", graph)
+            graph = this.graphManager(objectData.default.data[0].value);
+            console.log(graph)
             console.log('The graph is successfully built from the variant');
         }
-        this.components = this.buildScc(graph)
-        console.log("components have built")
+        this.components = SccBuilder.findComponents(graph)
         this.graph = graph
-        this.num = 0
+        this.effort = 0
         this.step = 1
         this.ball = 100
     }
@@ -95,17 +91,29 @@ class App extends Template {
             }
             ToolButtonList.prototype.beforeComplete = beforeComplete.bind(this);
             ToolButtonList.prototype.help = () =>
-                'Для раскарски ребер можно воспользоваться тремя цветами:'+
-                'Для окраски ребра в зеленый цвет щелкните по ребру\n' +
-                'Для окраски ребра в синий или красный цвет щелкните по ребру, а затем по соответствующей кнопке\n'+
-                'Гарантируется, что циклов не больше трех(по цислц цветов).\n';;
+                ' Для раскарски ребер можно воспользоваться тремя цветами:'+
+                ' Для окраски ребра в зеленый цвет щелкните по ребру\n' +
+                ' Для окраски ребра в синий или красный цвет щелкните по ребру, а затем по соответствующей кнопке\n'+
+                ' Гарантируется, что циклов не больше 6(по числу цветов).\n';
 
             ToolButtonList.prototype.toolButtons = {
-                "http://gl-backend.svtz.ru:5000/odata/downloadImage(name='color_blue.png')": () => {
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAAwklEQVRYhe3ZMQ6EIBCFYQ6DJ+IGxsJbTEPiJbiWFVa0EDzC28I1YY2h3BnjkPwJ5Ve/Mbi8dQW8B4j+n/dAjFcRYM5PKYBzgDH8OQfkfEHuO2AtP65tGIBaG+Q48qPumqYvMiV+TK+UABMCP6RXCIAh4of0WpYHIIkUqUhZKVKR0lKkIqWlSEVKS5GKlJYiFSktRb4P+YhVbdv4Ib1Sguyld56bObrWY6PmRrVZe2z5P9eHnGVdH0q5OZGcL0Z5d5wPlcr1BokdprAAAAAASUVORK5CYII=": () => {
                     this.changeColor('blue');
                 },
-                "http://gl-backend.svtz.ru:5000/odata/downloadImage(name='color_red.png')": () => {
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAA6klEQVRYhe3ZQQqCQBTG8TlER8gj6EW8gESLVhF0ADdCuBA6gDvPFARmCzEQdByZcNXoaxGSWbhsXvQG/jDL3/p9DEbvdjyADDyQvvv9Ag9UEo9JwPpPy0vgjg2XGdMed2xoy+IV2dUCcnOuHTcstwzoRPVEivVCO+pTYrN8IFWWasdMpbIUWBOF2iFTNVEITPqudshU1/0OP1L6LiEJiSpCEhJbhCQktghJSGwRkpDYIiQhsUXI/0P+xFVNnU/aIVOpLEV+6d2uBjdzUUFuGdpRw3JzDl0tRutDWeBaH3j5PpH0TyUxuh3nDkYt0C9a89nSAAAAAElFTkSuQmCC": () => {
                     this.changeColor('red');
+                },
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAAsklEQVRYhe3ZsQ3CMABEUQ8TJsoGiIIt3ERiiaxFFSq3RGGET2FiWQG5zUWcpa9YqV59DmzPHRiAuEMDMH2JCOU2A/3nz971wHOLfAGdAK7uBCw18iyA+tVlRSYBTKsEgVEA0mqEQBSAtLodARmNNFIsI41Uy0gj1TLSSLWMNFItI41Uy8j/Qx5iVXsIQFql/NFdeq8AK3Ihb9R7o+o68pZfkJDXfqXXh7nIKuR6JuTecd6+KBAsyN2XFwAAAABJRU5ErkJggg==": () => {
+                    this.changeColor('fuchsia');
+                },
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAAtElEQVRYhe3ZMQ6CMACF4R4GTsQNjIO3YCHxElzLCaeuEj3C71DARkzXPuJr8icN07ewvAZ25wYMQF+hAZh2ovC5zkC3fKpdBzy+kS+gEcDltcAzR54EUL86r8gogCkVCTAKQEqNhPRX1YaUuh4B2RtppFhGGqmWkUaqZaSRahlppFpGGqmWkf+HPMSqdheAlIoEAN2l9wLLjbRNtwKovIa05W9ISGu/0uvDvMky5Hom1N5x3tk/ECxAKOzUAAAAAElFTkSuQmCC": () => {
+                    this.changeColor('yellow');
+                },
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAAvklEQVRYhe3ZMQrDMAyFYd//BjmB7+ApySyc0bcICA22J3UoJWkoHiuFPMEPHr/5Oejl9n3XnLMS0d/LOSszX0kaPo9aq6aUdJom81JKWmv9RvbeNcZojjsXY9TW2oGc59kc9atlWd5IETHHjBIRDaUUc8ioUooGIjKHjNq2zT+SiIAE0lVAAuktIIH0FpBAegtIIL0FJJDeAvJ5yFusasxsDhklIr6X3nVdjzm6teZyM++93+z34XzM7O4f5wUlU9e2R+NahgAAAABJRU5ErkJggg==": () => {
+                    this.changeColor('silver');
+                },
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAA7klEQVRYhe3ZTwqCQBTH8TmMnqCDKHSDiOgCrhQkkjqCLoQi2guCdADP0MraTJCY/7Bw/VqEZBYumxe9gS/M8rN+Pwaddz7uIXAt8B3z6wWuBQmPuiRgzedWZmBrQ5gMmPBsbQi3Mn1F1tcSdEUSjmtnqDLUVfFErmcj4ahPbebjBzKPuXBMX3nMgYWeKxzSV+i5wHzHFA7pa7da4kf6jklIQqKKkITEFiEJiS1CEhJbhCQktghJSGwR8v+QP3FVu5wOwiF95THHfendLqatm3lVgKHKwlHtdEWC+lp214cU2fqQvU8kzUt4hG7HuQNY0YNUuDtj1gAAAABJRU5ErkJggg==": () => {
+                    this.changeColor('sienna');
                 }
             };
             return ToolButtonList;
@@ -121,16 +129,15 @@ class App extends Template {
         select(`#edge_${Out}_${In}`).style('stroke', color);
     }
 
-    getVertexColor(i: string){
-        let vertex = select(`#vertex_${i}`)
-        let color = vertex.style('fill')
-        return color
+    getVertexColor(vertexNum: string){
+        let vertex = select(`#vertex_${vertexNum}`)
+        return vertex.style('fill')
     }
 
     getEdgeColor(edge: IEdgeView){
         let Out: string = edge.vertexOne;
         let In: string = edge.vertexTwo;
-        let color: string = "black"
+        let color: string
         try {
             color = select(`#edge_${Out}_${In}`).style('stroke');
         }
@@ -139,82 +146,72 @@ class App extends Template {
         }
         return color
     }
-    getVertexCoordinate(i: string){
-        let vertex = select(`#vertex_${i}`)
-        let x = Number(vertex.attr('cx'))
-        let y = Number(vertex.attr('cy'))
-        let coord: number[] = [x, y]
-        return coord
+    getVertexCoordinate(vertexNum: string){
+        let vertex = select(`#vertex_${vertexNum}`)
+        let x: number = Number(vertex.attr('cx'))
+        let y: number = Number(vertex.attr('cy'))
+        return [x, y]
     }
 
-    compareVertiesCoordinate(vertexOneName: string, vertexTwoName: string){
-        let vertexOneNameCoord = this.getVertexCoordinate(vertexOneName)
-        let vertexTwoNameCoord = this.getVertexCoordinate(vertexTwoName)
-        let diffX = Math.abs(vertexOneNameCoord[0] - vertexTwoNameCoord[0])
-        let diffy = Math.abs(vertexOneNameCoord[1] - vertexTwoNameCoord[1])
-
-        return !(diffX > 15 || diffy > 15);
+    compareVerticesCoordinate(vertexOneName: string, vertexTwoName: string){
+        let vertexOneNameCoord: number[] = this.getVertexCoordinate(vertexOneName)
+        let vertexTwoNameCoord: number[] = this.getVertexCoordinate(vertexTwoName)
+        let diffX: number = Math.abs(vertexOneNameCoord[0] - vertexTwoNameCoord[0])
+        let diffY: number = Math.abs(vertexOneNameCoord[1] - vertexTwoNameCoord[1])
+        return !(diffX > 15 || diffY > 15);
     }
 
-    appendEdge(scc_student: any, vertexOneName: string, vertexTwoName: string, color: string){
-        if (scc_student[color].length === 0){
-            scc_student[color].push(vertexOneName)
-            scc_student[color].push(vertexTwoName)
+    appendEdge(studentSCC: any, vertexOneName: string, vertexTwoName: string, color: string){
+        if (studentSCC[color].length === 0){
+            studentSCC[color].push(vertexOneName)
+            studentSCC[color].push(vertexTwoName)
         }
-        else if (scc_student[color].indexOf(vertexOneName) === -1){
-            scc_student[color].push(vertexOneName)
+        else if (studentSCC[color].indexOf(vertexOneName) === -1){
+            studentSCC[color].push(vertexOneName)
         }
-        else if (scc_student[color].indexOf(vertexTwoName) === -1){
-            scc_student[color].push(vertexTwoName)
+        else if (studentSCC[color].indexOf(vertexTwoName) === -1){
+            studentSCC[color].push(vertexTwoName)
         }
-        return scc_student
+        return studentSCC
     }
 
-    checkAnswer(student_answer: number[][], answer: number[][]): boolean{
+    checkAnswer(studentAnswer: number[][], answer: number[][]): boolean{
         let res: boolean[] = []
-        if (answer.length !== student_answer.length){
+        if (answer.length !== studentAnswer.length){
             return false
         }
         for (let i: number = 0; i < answer.length; i++) {
-            let ans: number[] = answer[i].sort()
-
-            for (let j: number = 0; j < student_answer.length; j++) {
-                let std: number[] = student_answer[j].sort()
-                let arr1 = JSON.stringify(std)
-                let arr2 = JSON.stringify(ans)
-                if (arr2 === arr1){
+            let component: string = JSON.stringify(answer[i].sort())
+            for (let j: number = 0; j < studentAnswer.length; j++) {
+                let studentComponent: string = JSON.stringify(studentAnswer[j].sort())
+                if (studentComponent === component){
                     res.push(true)
                 }
             }
         }
-        if (res.length === answer.length){
-            return true
-        }
-        return false
+        return res.length === answer.length;
     }
-    checkCondensate(){
-        let CondensateComponents = this.buildCorrectAnswer()
-        for (let i: number = 0; i < CondensateComponents.length; i++) {
-            let component: any = CondensateComponents[i]
 
-            for (let j: number = 0; j < component.length; j++) {
-                let vertex = component[j]
-
-                for (let f: number = 0; f < component.length; f++) {
-                    let res: boolean = this.compareVertiesCoordinate(vertex, component[f])
+    checkCondensate(condensateComponents: any){
+        for (let componentNum: number = 0; componentNum < condensateComponents.length; componentNum++) {
+            let component: any = condensateComponents[componentNum]
+            for (let componentVertexNum: number = 0; componentVertexNum < component.length; componentVertexNum++) {
+                let vertex = component[componentVertexNum]
+                for (let componentVertexNumTwo: number = 0; componentVertexNumTwo < component.length; componentVertexNumTwo++) {
+                    let res: boolean = this.compareVerticesCoordinate(vertex, component[componentVertexNumTwo])
                     if(!res){
                         return false
                     }
                 }
             }
-            for (let c: number = 0; c < CondensateComponents.length; c++) {
-                if(i !== c){
-                        let res: boolean = this.compareVertiesCoordinate(component[0], CondensateComponents[c][0])
-                        if(res){
-                            return false
-                        }
+            for (let vertexNotComponentNum: number = 0; vertexNotComponentNum < condensateComponents.length; vertexNotComponentNum++) {
+                if(componentNum !== vertexNotComponentNum){
+                    let res: boolean = this.compareVerticesCoordinate(component[0], condensateComponents[vertexNotComponentNum][0])
+                    if(res){
+                        return false
                     }
                 }
+            }
         }
         return true
     }
@@ -222,26 +219,25 @@ class App extends Template {
     calculate() {
         let student_answer = this.buildStudentAnswer()
         let answer = this.buildCorrectAnswer()
-
         if(this.step === 1){
             if (this.checkAnswer(student_answer, answer)){
                 alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
                 this.step = 2
-                this.ball = 100 - (this.num * 13)
+                this.ball = 100 - (this.effort * 13)
                 return {success: true , fee: 0}
             }
             else {
-                this.num = this.num + 1
-                if ( this.num > 4 ){
+                this.effort = this.effort + 1
+                if ( this.effort > 4 ){
                     fee = 0
                     this.ball = 0
                 }
-                if (this.num === 4){
+                if (this.effort === 4){
                     fee = 61
                     this.ball = 0
                     alert("Упражнение окончено. Вы допустили слишом много ошибок.")
                 }
-                else if (this.num < 4){
+                else if (this.effort < 4){
                     alert("Вы ошиблись. Попробуйте еще раз.")
                 }
                 return {success: false , fee: fee}
@@ -249,7 +245,7 @@ class App extends Template {
         }
         else if (this.step === 2){
             this.step = 3
-            if (this.checkCondensate()){
+            if (this.checkCondensate(answer)){
                 alert("Поздравляю, вы справились с заданием.")
                 return {success: true , fee: 0}
             }
@@ -262,7 +258,6 @@ class App extends Template {
             return {success: true, fee: 0}
         }
         return {success: false, fee: 0}
-
     }
 
     buildCorrectAnswer(): any{
@@ -276,25 +271,41 @@ class App extends Template {
 
     buildStudentAnswer(): any{
         let edges: any = this.graph.edges
-        let scc_student: any = {"blue":[], "red": [], "black": [], "green": []}
+        let studentSCC: any = {
+            "blue":[], "red": [], "black": [], "green": [],
+            "fuchsia": [], "yellow": [], "silver": [], "sienna": []
+        }
         for (let i: number = 0; i < edges.length; i++) {
             let color: string = this.getEdgeColor(edges[i])
-            scc_student = this.appendEdge(scc_student,edges[i].vertexOne.name, edges[i].vertexTwo.name, color)
+            studentSCC = this.appendEdge(studentSCC, edges[i].vertexOne.name, edges[i].vertexTwo.name, color)
         }
         let answer: any = []
-        if (scc_student["blue"].length > 0){
-            answer.push(scc_student["blue"])
+        if (studentSCC["blue"].length > 0){
+            answer.push(studentSCC["blue"])
         }
-        if (scc_student["red"].length > 0){
-            answer.push(scc_student["red"])
+        if (studentSCC["red"].length > 0){
+            answer.push(studentSCC["red"])
         }
-        if (scc_student["green"].length > 0){
-            answer.push(scc_student["green"])
+        if (studentSCC["green"].length > 0){
+            answer.push(studentSCC["green"])
         }
+        if (studentSCC["yellow"].length > 0){
+            answer.push(studentSCC["yellow"])
+        }
+        if (studentSCC["sienna"].length > 0){
+            answer.push(studentSCC["sienna"])
+        }
+        if (studentSCC["silver"].length > 0){
+            answer.push(studentSCC["silver"])
+        }
+        if (studentSCC["fuchsia"].length > 0){
+            answer.push(studentSCC["fuchsia"])
+        }
+
         for (let i: number = 0; i < this.graph.vertices.length; i++) {
             let color = this.getVertexColor(this.graph.vertices[i].name)
             if(color === "rgb(255, 0, 0)"){
-             answer.push([this.graph.vertices[i].name])
+                answer.push([this.graph.vertices[i].name])
             }
         }
         return answer
@@ -302,17 +313,13 @@ class App extends Template {
 
     getScc(component: IGraph<IVertex, IEdge>){
         let vertices = component.vertices
-        let vertices_name = []
-
+        let verticesName = []
         for (let i: number = 0; i < vertices.length; i++) {
-            vertices_name.push(vertices[i].name)
+            verticesName.push(vertices[i].name)
         }
-        return vertices_name
+        return verticesName
     }
 
-    buildScc(graph: IGraph<IVertex, IEdge>):IGraph<IVertex, IEdge>[]{
-        return SccBuilderDirected.findComponents(graph)
-    }
 
     task() {
         return () => (
@@ -333,113 +340,8 @@ class App extends Template {
                 </div>
             </div>);
     }
-
 }
 
-export class SccBuilderDirected {
-    /**
-     * Finds strongly connected components
-     * @param graph
-     * @returns {IGraph[]}
-     */
-    public static findComponents(graph: IGraph<IVertex, IEdge>): IGraph<IVertex, IEdge>[] {
-        return (new SccBuilderDirected(graph)).buildComponents();
-    }
-
-    private readonly _accessibilityMatrix: number[][];
-    private readonly _graph: IGraph<IVertex, IEdge>;
-    private readonly _vertices: IVertex[];
-
-    private constructor(graph: IGraph<IVertex, IEdge>) {
-        this._graph = graph;
-        this._vertices = this._graph.vertices;
-        this._accessibilityMatrix = SccBuilderDirected.buildAccessibilityMatrix(graph);
-    }
-
-    public static buildAccessibilityMatrix(graph: IGraph<IVertex, IEdge>): number[][] {
-        let result: number[][] = [];
-        let diagonal: number[][] = [];
-        for (let i: number = 0; i < graph.vertices.length; i++) {
-            result[i] = [];
-            diagonal[i] = [];
-            for (let j: number = 0; j < graph.vertices.length; j++) {
-                if (i == j) {
-                    diagonal[i][j] = 1;
-                } else {
-                    diagonal[i][j] = 0;
-                }
-
-                if (graph.vertices[j].isAdjacent(graph, graph.vertices[i])) {
-                    let edges: IEdge[] = graph.getEdge(graph.vertices[j], graph.vertices[i])
-                    if  (edges.length == 2) {
-                        result[i][j] = 1;
-                    }
-                    else {
-                        result[i][j] = 0;
-
-                    }
-                    if (edges.length == 1){
-                        if (edges[0].vertexOne == graph.vertices[j]){
-                            result[i][j] = 1;
-                        }
-                        else {
-                            result[i][j] = 0;
-
-                        }
-                    }
-                } else {
-                    result[i][j] = 0;
-                }
-            }
-        }
-        for (let i: number = 0; i < graph.vertices.length; i++){
-            result = MatrixOperations.Sum(result, MatrixOperations.Power(result, i))
-        }
-        result = MatrixOperations.Sum(result, diagonal);
-        result = MatrixOperations.Binary(result);
-        return result;
-    }
-
-    private buildComponents(): IGraph<IVertex, IEdge>[] {
-        const s: number[][] = [];
-        for (let i: number = 0; i < this._graph.vertices.length; i++) {
-            s[i] = [];
-            for (let j: number = 0; j < this._graph.vertices.length; j++)
-                s[i][j] = this._accessibilityMatrix[i][j] * this._accessibilityMatrix[j][i];
-        }
-
-        const added: boolean[] = new Array(this._graph.vertices.length);
-        for (let i: number = 0; i < added.length; i++)
-            added[i] = false;
-
-        const components: IGraph<IVertex, IEdge>[] = [];
-        for (let i: number = 0; i < this._graph.vertices.length; i++) {
-            if (added[i])
-                continue;
-            // @ts-ignore
-            const scc: IGraph<IVertex, IEdge> = this._graph.isDirected
-                ? new DirectedGraph()
-                : new UndirectedGraph();
-
-            added[i] = true;
-            scc.addVertex(this._vertices[i]);
-            for (let j: number = 0; j < this._graph.vertices.length; j++)
-                if (!added[j] && s[i][j] == 1) {
-                    added[j] = true;
-                    scc.addVertex(this._vertices[j]);
-                }
-            components.push(scc);
-        }
-
-        this._graph.edges.forEach(edge => {
-            const whereToAdd =
-                components.filter(c => c.vertices.indexOf(edge.vertexOne) != -1 &&
-                    c.vertices.indexOf(edge.vertexTwo) != -1);
-            whereToAdd.forEach(c => c.addEdge(edge));
-        });
-        return components;
-    }
-}
 
 export default App;
 
