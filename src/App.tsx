@@ -3,12 +3,187 @@ import './App.css';
 
 // @ts-ignore
 import {select} from 'd3-selection'
-import {DirectedGraph, Edge, Graph, IEdge, IGraph, IVertex, SccBuilder, UndirectedGraph, Vertex} from 'graphlabs.core.graphs'
+import {DirectedGraph, Edge, Graph, IEdge, IGraph, IVertex, SccBuilder, Vertex} from 'graphlabs.core.graphs'
 import {GraphVisualizer, IEdgeView, store, Template, Toolbar, ToolButtonList} from "graphlabs.core.template";
 import * as data_json from "./stub.json";
 
 let fee: number = 13
 
+
+let ver_index = 0
+class SCCGraphGenerator {
+    maxCmp: number = 2
+    minCmp: number = 6
+    cmpNum: number
+    components: any
+    graph: any
+
+    constructor() {
+        this.components = []
+        this.cmpNum = this.getRandomCmpNumber(this.minCmp, this.maxCmp)
+        this.generateSCC()
+        this.buildGraph()
+    }
+
+    getRandomNumber(min: number, max:number): number {
+        min = Math.ceil(min)
+        max = Math.floor(max) + 1
+        return Math.floor(Math.random() * (max - min)) + min
+    }
+
+    getRandomElementArray(arr: any){
+        let rand = Math.floor(Math.random() * arr.length);
+        return arr[rand]
+    }
+
+    getRandomCmpNumber(min: number, max:number): number {
+        min = Math.ceil(min)
+        max = Math.floor(max) + 1
+        return Math.floor(Math.random() * (max - min)) + min
+    }
+
+    generateSCC(){
+        for (let i = 0; i < this.cmpNum; i++){
+            let cmp = new SCCGenerator()
+            this.components.push(cmp.getComponent())
+        }
+    }
+
+    buildGraph(){
+        let allVers = []
+        let allEdgs = []
+        let parsed_cmp = []
+        let connections = []
+
+        for (let cmp of this.components){
+            parsed_cmp.push(cmp.vertices)
+            for (let v of cmp.vertices){
+                allVers.push(v)
+            }
+            for (let e of cmp.edges){
+                allEdgs.push(e)
+            }
+        }
+
+        for(let i = 0; i <  this.components.length - 1; i++) {
+            let rand_start_v = this.getRandomCmpNumber(0, this.components[i].vertices.length - 2)
+            let rand_end_v = this.getRandomCmpNumber(0, this.components[i + 1].vertices.length - 2)
+            let source = this.components[i].vertices[rand_start_v]
+            let destination = this.components[i + 1].vertices[rand_end_v]
+            let edg = {"source": source, "target": destination, "isDirected": true}
+            allEdgs.push(edg)
+        }
+
+        // for(let i = 0; i <  this.components.length - 1; i++) {
+        //     let source = this.getRandomElementArray(this.components[i].vertices)
+        //     let destination = this.getRandomElementArray(this.components[i + 1].vertices)
+        //     let edg = {"source": source, "target": destination, "isDirected": true}
+        //     allEdgs.push(edg)
+        // }
+        let numOfStarts = this.getRandomNumber(0, 3)
+
+        let index = ver_index + 1
+
+        if(allEdgs.length < 25){
+
+        for(let i = 0; i <= numOfStarts; i++){
+            let numOfDes= this.getRandomNumber(1, 3)
+            let source: string = String(index)
+            allVers.push(source)
+            index++
+            for(let d = 0; d <= numOfDes; d++){
+                let destComp = this.getRandomElementArray(this.components)
+                let destination = this.getRandomElementArray(destComp.vertices)
+                let edge = {"source": source, "target": destination, "isDirected": true}
+
+                let edge_str = JSON.stringify(edge)
+                let edges_str = JSON.stringify(allEdgs)
+
+                if(edges_str.indexOf(edge_str) === -1) allEdgs.push(edge)
+            }
+        }}
+
+        this.graph = {
+            vertices : allVers,
+            edges: allEdgs
+        }
+        console.log("this.graph")
+        console.log(this.graph)
+    }
+}
+
+
+
+class SCCGenerator{
+    vertexes: any
+    edges: any
+    verNumber: number
+    edgeNumber: number
+
+    getRandomNumber(min: number, max:number): number {
+        min = Math.ceil(min)
+        max = Math.floor(max) + 1
+        return Math.floor(Math.random() * (max - min)) + min
+    }
+
+    getRandomElementArray(arr: any){
+        let rand = Math.floor(Math.random() * arr.length);
+        return arr[rand]
+    }
+
+    generateVertexes(){
+        this.verNumber = this.getRandomNumber(2, 4)
+
+        for(let i: number = 0; i<this.verNumber;){
+            let ver = String(ver_index)
+            if( this.vertexes.indexOf(ver) === -1){
+                this.vertexes.push(ver)
+                i++
+            }
+            ver_index++
+        }
+    }
+
+    constructor() {
+        this.vertexes = []
+        this.edges = []
+        this.verNumber = 0
+        this.edgeNumber = 0
+        this.generateVertexes()
+        this.generateEdges()
+    }
+
+    generateEdges(){
+        let destinations = []
+
+        while(destinations.length !== this.vertexes.length){
+
+            let source = this.getRandomElementArray(this.vertexes)
+            let destination = this.getRandomElementArray(this.vertexes)
+            if(source !== destination){
+                let edge = {"source": source, "target": destination, "isDirected": true}
+
+                let edge_str = JSON.stringify(edge)
+                let edges_str = JSON.stringify(this.edges)
+
+                if(edges_str.indexOf(edge_str) === -1){
+                    this.edges.push(edge)
+                    if(destinations.indexOf(destination) === -1) {
+                        destinations.push(destination)
+                    }
+                }
+            }
+        }
+        this.edgeNumber = this.edges.length
+    }
+
+    getComponent(){
+        return {
+            vertices: this.vertexes,
+            edges: this.edges
+        }
+    }
+}
 
 class App extends Template {
 
@@ -47,23 +222,26 @@ class App extends Template {
     }
 
     setGraph(){
-        // const data = sessionStorage.getItem('variant');
         let graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
-        let objectData;
-        let data: string = JSON.stringify(data_json)
-        try {
-            objectData = JSON.parse(data|| 'null');
-            console.log('The variant is successfully parsed');
-        } catch (err) {
-            console.log('Error while JSON parsing');
-        }
-        if (data) {
-            graph = this.graphManager(objectData.default.data[0].value);
-            // graph = this.graphManager(objectData.data[0].value);
-            console.log(graph)
-            console.log('The graph is successfully built from the variant');
-        }
+        // let objectData;
+        // let data: string = JSON.stringify(data_json)
+        // try {
+        //     objectData = JSON.parse(data|| 'null');
+        //     console.log('The variant is successfully parsed');
+        // } catch (err) {
+        //     console.log('Error while JSON parsing');
+        // }
+        // if (data) {
+        //     graph = this.graphManager(objectData.default.data[0].value);
+        //     console.log('The graph is successfully built from the variant');
+        // }
+
+        let data = new SCCGraphGenerator()
+        graph = this.graphManager(data.graph);
+        console.log('The graph is successfully built from the variant', graph)
+
         this.components = SccBuilder.findComponents(graph)
+        console.log("correct_componetns ", this.components)
         this.graph = graph
         this.effort = 0
         this.step = 1
@@ -223,6 +401,8 @@ class App extends Template {
     calculate() {
         let student_answer = this.buildStudentAnswer()
         let answer = this.buildCorrectAnswer()
+        console.log(student_answer)
+        console.log(answer)
         if(this.step === 1){
             if (this.checkAnswer(student_answer, answer)){
                 alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
@@ -290,8 +470,7 @@ class App extends Template {
         return res
     }
 
-
-    compareDict(studentAnswer:any, answer: any): boolean {
+    compareDict(studentAnswer: any, answer: any): boolean {
         let res: boolean[] = []
         let num1 = 0
         let num2 = 0
@@ -300,20 +479,22 @@ class App extends Template {
         }
         for (let i in answer) {
             if(answer[i].length > 0){
-                num1=++num1
+                num1 = ++num1
+                num2 = 0
                 let component: string = JSON.stringify(answer[i].sort())
                 for (let j in studentAnswer) {
                     if(studentAnswer[j].length > 0){
-                        num2=++num2
+                        num2 = ++num2
                         let studentComponent: string = JSON.stringify(studentAnswer[j].sort())
 
                         console.log("component", component)
-                        console.log("st", studentComponent)
+                        console.log("studentComponent", studentComponent)
                         if (studentComponent === component) {
                             res.push(true)
                         }}
                 }}
         }
+        console.log(res, num1, num2)
         if (res.length === num1 && num1 == num2) return true
         return false
     }
@@ -341,6 +522,7 @@ class App extends Template {
 
         let res = this.compareDict(studentSCC, studentSCCWithDubl)
         console.log(res)
+        console.log(studentSCC, studentSCCWithDubl)
         if (!res) return []
 
         let answer: any = []
