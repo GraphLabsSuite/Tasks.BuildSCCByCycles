@@ -10,105 +10,102 @@ import * as data_json from "./stub.json";
 let fee: number = 13
 
 
-let ver_index = 0
+function getRandomNumber(min: number, max: number): number {
+    min = Math.ceil(min)
+    max = Math.floor(max) + 1
+    return Math.floor(Math.random() * (max - min)) + min
+}
+
+function getRandomElementArray(arr: Array<any>){
+    let rand = Math.floor(Math.random() * arr.length);
+    return arr[rand]
+}
+
+
+let maxVerIndex = 0
+
 class SCCGraphGenerator {
     maxCmp: number = 2
-    minCmp: number = 6
+    minCmp: number = 4
     cmpNum: number
-    components: any
+    components: Array<any>
     graph: any
+    allVertices: Array<any>
+    allEdges: Array<any>
 
     constructor() {
         this.components = []
-        this.cmpNum = this.getRandomCmpNumber(this.minCmp, this.maxCmp)
+        this.allEdges = []
+        this.allVertices = []
+        this.cmpNum = getRandomNumber(this.minCmp, this.maxCmp)
         this.generateSCC()
-        this.buildGraph()
+        this.connectComponents()
+        this.generateSingleSCC()
+        this.graph = this.getGraph()
     }
 
-    getRandomNumber(min: number, max:number): number {
-        min = Math.ceil(min)
-        max = Math.floor(max) + 1
-        return Math.floor(Math.random() * (max - min)) + min
-    }
-
-    getRandomElementArray(arr: any){
-        let rand = Math.floor(Math.random() * arr.length);
-        return arr[rand]
-    }
-
-    getRandomCmpNumber(min: number, max:number): number {
-        min = Math.ceil(min)
-        max = Math.floor(max) + 1
-        return Math.floor(Math.random() * (max - min)) + min
-    }
-
-    generateSCC(){
-        for (let i = 0; i < this.cmpNum; i++){
+    generateSCC() {
+        for (let i = 0; i < this.cmpNum; i++) {
             let cmp = new SCCGenerator()
-            this.components.push(cmp.getComponent())
+            let parsedCmp = cmp.getComponent()
+
+            this.components.push(parsedCmp)
+            for (let v of parsedCmp.vertices) {
+                this.allVertices.push(v)
+            }
+            for (let e of parsedCmp.edges) {
+                this.allEdges.push(e)
+            }
         }
     }
 
-    buildGraph(){
-        let allVers = []
-        let allEdgs = []
-        let parsed_cmp = []
-        let connections = []
-
-        for (let cmp of this.components){
-            parsed_cmp.push(cmp.vertices)
-            for (let v of cmp.vertices){
-                allVers.push(v)
+    connectComponents() {
+        for (let i = 0; i < this.components.length - 1; i++) {
+            let source = getRandomElementArray(this.components[i].vertices)
+            let target: string
+            if(i + 1 === this.components.length){
+                target = getRandomElementArray(this.components[0].vertices)
             }
-            for (let e of cmp.edges){
-                allEdgs.push(e)
+            else {
+                target = getRandomElementArray(this.components[i + 1].vertices)
             }
+            let edge = {"source": source, "target": target, "isDirected": true}
+            this.allEdges.push(edge)
         }
+    }
 
-        for(let i = 0; i <  this.components.length - 1; i++) {
-            let rand_start_v = this.getRandomCmpNumber(0, this.components[i].vertices.length - 2)
-            let rand_end_v = this.getRandomCmpNumber(0, this.components[i + 1].vertices.length - 2)
-            let source = this.components[i].vertices[rand_start_v]
-            let destination = this.components[i + 1].vertices[rand_end_v]
-            let edg = {"source": source, "target": destination, "isDirected": true}
-            allEdgs.push(edg)
-        }
+    generateSingleSCC() {
+        let numOfStarts = getRandomNumber(0, 3)
+        let index = maxVerIndex + 1
 
-        // for(let i = 0; i <  this.components.length - 1; i++) {
-        //     let source = this.getRandomElementArray(this.components[i].vertices)
-        //     let destination = this.getRandomElementArray(this.components[i + 1].vertices)
-        //     let edg = {"source": source, "target": destination, "isDirected": true}
-        //     allEdgs.push(edg)
-        // }
-        let numOfStarts = this.getRandomNumber(0, 3)
+        if (this.allEdges.length > 24) return
 
-        let index = ver_index + 1
-
-        if(allEdgs.length < 25){
-
-        for(let i = 0; i <= numOfStarts; i++){
-            let numOfDes= this.getRandomNumber(1, 3)
+        for (let i = 0; i <= numOfStarts; i++) {
             let source: string = String(index)
-            allVers.push(source)
+            this.allVertices.push(source)
             index++
-            for(let d = 0; d <= numOfDes; d++){
-                let destComp = this.getRandomElementArray(this.components)
-                let destination = this.getRandomElementArray(destComp.vertices)
-                let edge = {"source": source, "target": destination, "isDirected": true}
 
-                let edge_str = JSON.stringify(edge)
-                let edges_str = JSON.stringify(allEdgs)
+            let numOfDestination = getRandomNumber(1, 2)
 
-                if(edges_str.indexOf(edge_str) === -1) allEdgs.push(edge)
+            for (let d = 0; d <= numOfDestination; d++) {
+                let destinationCmp = getRandomElementArray(this.components)
+                let destinationVertice = getRandomElementArray(destinationCmp.vertices)
+
+                let edge = {"source": source, "target": destinationVertice, "isDirected": true}
+
+                let parseEdge = JSON.stringify(edge)
+                let parseAllEdges = JSON.stringify(this.allEdges)
+
+                if (parseAllEdges.indexOf(parseEdge) === -1) this.allEdges.push(edge)
             }
-        }}
-
-        this.graph = {
-            vertices : allVers,
-            edges: allEdgs
         }
-        console.log("this.graph")
-        console.log(this.graph)
+    }
+
+    getGraph() {
+        return {
+            vertices: this.allVertices,
+            edges: this.allEdges
+        }
     }
 }
 
@@ -118,55 +115,42 @@ class SCCGenerator{
     vertexes: any
     edges: any
     verNumber: number
-    edgeNumber: number
-
-    getRandomNumber(min: number, max:number): number {
-        min = Math.ceil(min)
-        max = Math.floor(max) + 1
-        return Math.floor(Math.random() * (max - min)) + min
-    }
-
-    getRandomElementArray(arr: any){
-        let rand = Math.floor(Math.random() * arr.length);
-        return arr[rand]
-    }
-
-    generateVertexes(){
-        this.verNumber = this.getRandomNumber(2, 4)
-
-        for(let i: number = 0; i<this.verNumber;){
-            let ver = String(ver_index)
-            if( this.vertexes.indexOf(ver) === -1){
-                this.vertexes.push(ver)
-                i++
-            }
-            ver_index++
-        }
-    }
 
     constructor() {
         this.vertexes = []
         this.edges = []
-        this.verNumber = 0
-        this.edgeNumber = 0
+        this.verNumber = getRandomNumber(2, 4)
         this.generateVertexes()
         this.generateEdges()
+    }
+
+    generateVertexes(){
+        for(let i: number = 0; i < this.verNumber;){
+            let ver = String(maxVerIndex)
+            if(this.vertexes.indexOf(ver) === -1){
+                this.vertexes.push(ver)
+                i++
+            }
+            maxVerIndex++
+        }
     }
 
     generateEdges(){
         let destinations = []
 
+
         while(destinations.length !== this.vertexes.length){
 
-            let source = this.getRandomElementArray(this.vertexes)
-            let destination = this.getRandomElementArray(this.vertexes)
+            let source = getRandomElementArray(this.vertexes)
+            let destination = getRandomElementArray(this.vertexes)
+
             if(source !== destination){
+
                 let edge = {"source": source, "target": destination, "isDirected": true}
+                let parseEdge = JSON.stringify(edge)
+                let parseAllEdges = JSON.stringify(this.edges)
 
-                let edge_str = JSON.stringify(edge)
-                let edges_str = JSON.stringify(this.edges)
-
-                if(edges_str.indexOf(edge_str) === -1){
+                if(parseAllEdges.indexOf(parseEdge) === -1){
                     this.edges.push(edge)
                     if(destinations.indexOf(destination) === -1) {
                         destinations.push(destination)
@@ -174,7 +158,6 @@ class SCCGenerator{
                 }
             }
         }
-        this.edgeNumber = this.edges.length
     }
 
     getComponent(){
@@ -184,6 +167,7 @@ class SCCGenerator{
         }
     }
 }
+
 
 class App extends Template {
 
@@ -223,23 +207,9 @@ class App extends Template {
 
     setGraph(){
         let graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
-        // let objectData;
-        // let data: string = JSON.stringify(data_json)
-        // try {
-        //     objectData = JSON.parse(data|| 'null');
-        //     console.log('The variant is successfully parsed');
-        // } catch (err) {
-        //     console.log('Error while JSON parsing');
-        // }
-        // if (data) {
-        //     graph = this.graphManager(objectData.default.data[0].value);
-        //     console.log('The graph is successfully built from the variant');
-        // }
-
         let data = new SCCGraphGenerator()
-        graph = this.graphManager(data.graph);
+        graph = this.graphManager(data.getGraph());
         console.log('The graph is successfully built from the variant', graph)
-
         this.components = SccBuilder.findComponents(graph)
         console.log("correct_componetns ", this.components)
         this.graph = graph
@@ -401,8 +371,8 @@ class App extends Template {
     calculate() {
         let student_answer = this.buildStudentAnswer()
         let answer = this.buildCorrectAnswer()
-        console.log(student_answer)
-        console.log(answer)
+        console.log("student_answer", student_answer)
+        console.log("correct_answer", answer)
         if(this.step === 1){
             if (this.checkAnswer(student_answer, answer)){
                 alert("Вы можете перейти ко второму этапу. Постройте конденсат графа, перетащив вершины.")
@@ -487,14 +457,11 @@ class App extends Template {
                         num2 = ++num2
                         let studentComponent: string = JSON.stringify(studentAnswer[j].sort())
 
-                        console.log("component", component)
-                        console.log("studentComponent", studentComponent)
                         if (studentComponent === component) {
                             res.push(true)
                         }}
                 }}
         }
-        console.log(res, num1, num2)
         if (res.length === num1 && num1 == num2) return true
         return false
     }
