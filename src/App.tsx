@@ -254,9 +254,25 @@ class App extends Template {
     }
 
     setGraph(){
+        const data = sessionStorage.getItem('variant');
+        console.log("data", data)
         let graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
-        let data = new SCCGraphGenerator()
-        graph = this.graphManager(data.getGraph());
+        let objectData;
+        // let data: string = JSON.stringify(data_json)
+        try {
+            objectData = JSON.parse(data|| 'null');
+            console.log('The variant is successfully parsed ', objectData);
+        } catch (err) {
+            console.log('Error while JSON parsing');
+        }
+        if (data) {
+            // graph = this.graphManager(objectData.default.data[0].value);
+            graph = this.graphManager(objectData.data[0].value);
+            console.log("graph", graph)
+            console.log('The graph is successfully built from the variant');
+        }
+        // let data = new SCCGraphGenerator()
+        // graph = this.graphManager(data.getGraph());
         console.log('The graph is successfully built from the variant', graph)
         this.components = SccBuilder.findComponents(graph)
         console.log("correct_componetns ", this.components)
