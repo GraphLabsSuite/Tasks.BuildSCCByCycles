@@ -254,28 +254,36 @@ class App extends Template {
     }
 
     setGraph(){
-        const data = sessionStorage.getItem('variant');
-        console.log("data", data)
+
         let graph: IGraph<IVertex, IEdge> = new Graph(true) as unknown as IGraph<IVertex, IEdge>;
         let objectData;
-        // let data: string = JSON.stringify(data_json)
+        const searchString = new URLSearchParams(window.location.search);
+
+        const autotest_mode = searchString.get('autotest_mode');
+        const data = sessionStorage.getItem('variant');
         try {
             objectData = JSON.parse(data|| 'null');
-            console.log('The variant is successfully parsed ', objectData);
         } catch (err) {
             console.log('Error while JSON parsing');
         }
-        if (data) {
-            // graph = this.graphManager(objectData.default.data[0].value);
-            graph = this.graphManager(objectData.data[0].value);
-            console.log("graph", graph)
-            console.log('The graph is successfully built from the variant');
+        if (data == null || autotest_mode == "HjmqvWTJBu"){
+            let data_stub: string = JSON.stringify(data_json)
+            objectData = JSON.parse(data_stub|| 'null');
+            graph = this.graphManager(objectData.default.data[0].value);
+            console.log('The graph is successfully built from the variant stub');
         }
+        else {
+            graph = this.graphManager(objectData.data[0].value);
+            console.log('The graph is successfully built from the variant storage');
+        }
+        console.log("graph", graph)
         // let data = new SCCGraphGenerator()
         // graph = this.graphManager(data.getGraph());
-        console.log('The graph is successfully built from the variant', graph)
+
+        console.log('The graph is successfully built ', graph)
+
         this.components = SccBuilder.findComponents(graph)
-        console.log("correct_componetns ", this.components)
+        sessionStorage.setItem("components", JSON.stringify(this.buildCorrectAnswer()))
         this.graph = graph
         this.effort = 0
         this.step = 1
@@ -308,22 +316,22 @@ class App extends Template {
                 ' Гарантируется, что циклов не больше 7(по числу цветов).\n';
 
             ToolButtonList.prototype.toolButtons = {
-                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAAwklEQVRYhe3ZMQ6EIBCFYQ6DJ+IGxsJbTEPiJbiWFVa0EDzC28I1YY2h3BnjkPwJ5Ve/Mbi8dQW8B4j+n/dAjFcRYM5PKYBzgDH8OQfkfEHuO2AtP65tGIBaG+Q48qPumqYvMiV+TK+UABMCP6RXCIAh4of0WpYHIIkUqUhZKVKR0lKkIqWlSEVKS5GKlJYiFSktRb4P+YhVbdv4Ib1Sguyld56bObrWY6PmRrVZe2z5P9eHnGVdH0q5OZGcL0Z5d5wPlcr1BokdprAAAAAASUVORK5CYII=": () => {
+                "http://svtz.ru:5000/odata/downloadImage(name='blue.jpg')": () => {
                     this.changeColor('blue');
                 },
-                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAA6klEQVRYhe3ZQQqCQBTG8TlER8gj6EW8gESLVhF0ADdCuBA6gDvPFARmCzEQdByZcNXoaxGSWbhsXvQG/jDL3/p9DEbvdjyADDyQvvv9Ag9UEo9JwPpPy0vgjg2XGdMed2xoy+IV2dUCcnOuHTcstwzoRPVEivVCO+pTYrN8IFWWasdMpbIUWBOF2iFTNVEITPqudshU1/0OP1L6LiEJiSpCEhJbhCQktghJSGwRkpDYIiQhsUXI/0P+xFVNnU/aIVOpLEV+6d2uBjdzUUFuGdpRw3JzDl0tRutDWeBaH3j5PpH0TyUxuh3nDkYt0C9a89nSAAAAAElFTkSuQmCC": () => {
+                "http://svtz.ru:5000/odata/downloadImage(name='red.jpg')": () => {
                     this.changeColor('red');
                 },
-                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAAsklEQVRYhe3ZsQ3CMABEUQ8TJsoGiIIt3ERiiaxFFSq3RGGET2FiWQG5zUWcpa9YqV59DmzPHRiAuEMDMH2JCOU2A/3nz971wHOLfAGdAK7uBCw18iyA+tVlRSYBTKsEgVEA0mqEQBSAtLodARmNNFIsI41Uy0gj1TLSSLWMNFItI41Uy8j/Qx5iVXsIQFql/NFdeq8AK3Ihb9R7o+o68pZfkJDXfqXXh7nIKuR6JuTecd6+KBAsyN2XFwAAAABJRU5ErkJggg==": () => {
+                "http://svtz.ru:5000/odata/downloadImage(name='magenta.jpg')": () => {
                     this.changeColor('fuchsia');
                 },
-                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAAtElEQVRYhe3ZMQ6CMACF4R4GTsQNjIO3YCHxElzLCaeuEj3C71DARkzXPuJr8icN07ewvAZ25wYMQF+hAZh2ovC5zkC3fKpdBzy+kS+gEcDltcAzR54EUL86r8gogCkVCTAKQEqNhPRX1YaUuh4B2RtppFhGGqmWkUaqZaSRahlppFpGGqmWkf+HPMSqdheAlIoEAN2l9wLLjbRNtwKovIa05W9ISGu/0uvDvMky5Hom1N5x3tk/ECxAKOzUAAAAAElFTkSuQmCC": () => {
+                "http://svtz.ru:5000/odata/downloadImage(name='yellow.jpg')": () => {
                     this.changeColor('yellow');
                 },
-                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAAvklEQVRYhe3ZMQrDMAyFYd//BjmB7+ApySyc0bcICA22J3UoJWkoHiuFPMEPHr/5Oejl9n3XnLMS0d/LOSszX0kaPo9aq6aUdJom81JKWmv9RvbeNcZojjsXY9TW2oGc59kc9atlWd5IETHHjBIRDaUUc8ioUooGIjKHjNq2zT+SiIAE0lVAAuktIIH0FpBAegtIIL0FJJDeAvJ5yFusasxsDhklIr6X3nVdjzm6teZyM++93+z34XzM7O4f5wUlU9e2R+NahgAAAABJRU5ErkJggg==": () => {
+                "http://svtz.ru:5000/odata/downloadImage(name='grey.jpg')": () => {
                     this.changeColor('silver');
                 },
-                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAYAAACoYAD2AAAA7klEQVRYhe3ZTwqCQBTH8TmMnqCDKHSDiOgCrhQkkjqCLoQi2guCdADP0MraTJCY/7Bw/VqEZBYumxe9gS/M8rN+Pwaddz7uIXAt8B3z6wWuBQmPuiRgzedWZmBrQ5gMmPBsbQi3Mn1F1tcSdEUSjmtnqDLUVfFErmcj4ahPbebjBzKPuXBMX3nMgYWeKxzSV+i5wHzHFA7pa7da4kf6jklIQqKKkITEFiEJiS1CEhJbhCQktghJSGwR8v+QP3FVu5wOwiF95THHfendLqatm3lVgKHKwlHtdEWC+lp214cU2fqQvU8kzUt4hG7HuQNY0YNUuDtj1gAAAABJRU5ErkJggg==": () => {
+                "http://svtz.ru:5000/odata/downloadImage(name='brown.jpg')": () => {
                     this.changeColor('sienna');
                 }
             };
